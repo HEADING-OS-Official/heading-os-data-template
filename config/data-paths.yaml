@@ -1,39 +1,14 @@
-# Runtime services - EXAMPLE / TEMPLATE
-# ======================================
-# THIS FILE IS A TEMPLATE AND IT IS NEVER THE LIVE REGISTRY. The live list is
-# the `services:` block of `<data-root>/config/data-paths.yaml`, the one registry
-# HOS-5 asks for, and `scripts/utils/runtime_dir.py` reads it from there and from
-# nowhere else. Nothing resolves an address through this file; it is read only
-# when a data root is SEEDED, and editing it changes nothing that is running.
+# The data-address registry of this data repository: the LIVE one.
+# Seeded from the engine's scripts/runtime-services.example.yaml when this
+# repository was created, and yours to edit from then on.
 #
-# The engine keeps it beside the scripts that seed from it, per this repository's
-# `*.example.*` convention: `scripts/create-data-repo.py` copies these rows into
-# a fresh data root's registry, and `scripts/utils/synthetic_data_root.py` seeds
-# a throwaway one from the same bytes. A public clone with no data overlay has
-# no service list at all, by design: it also has no data root to write under, so
-# `require_writable_data_root()` refuses every call before the list is even
-# consulted.
+# `services:` lists every service that may write under the runtime store,
+# `<runtime_store>/<service>/<kind>`, kinds logs, cache, state and tmp. A writer
+# naming a service not listed here is refused. Adding a row registers a service;
+# removing one refuses every writer still naming it.
 #
-# WHAT A SERVICE IS. `data_path("runtime:<service>/<kind>")` returns
-# `<data root>/<runtime_store>/<service>/<kind>` (the registry's `runtime_store:`,
-# `system/runtime` in the C3 structure) and validates `service` against
-# this list, so a typo in a writer is a refusal at the call and not a new folder
-# nobody asked for. A service is the unit, daemon, hook or script that writes,
-# spelled as its installer spells it. One line each says what it is.
-#
-# Design: the HEADING OS 2 migration's runtime store design record, in the data
-# overlay (its service table is the source of this list). Kinds are fixed in
-# `scripts/utils/runtime_dir.py` (`KINDS`): logs, cache, state, tmp.
-#
-# Adding a service to the LIVE registry is the whole registration. Removing one
-# refuses every writer still naming it, which is the point: a folder with no
-# service row is a folder with no owner. Adding one HERE registers nothing; it
-# only changes what a freshly created data root starts with.
-#
-# `version:` is here so that this file IS a complete minimal registry: seeding a
-# fresh data root is a copy to `<data-root>/config/data-paths.yaml` and not an
-# assembly step. A registry with services and no `names:` is legitimate -- the
-# residue block grows later, one settled address at a time.
+# A `names:` block is optional: without one, the engine answers every data
+# address from its own scripts/data-names.example.yaml.
 
 version: 1
 
@@ -44,10 +19,6 @@ services:
   ops-radar: "ops-radar.py: the autoheal failure counters and their lock"
   update-manager: "update-manager.py: the single-apply lock"
   memory-index: "memory-index.py: the rebuildable SQLite embeddings and FTS store"
-  # Added 2026-10-04 beside the live registry's own rows. Both were registered
-  # only there, so on a tree with no registry (CI, a public clone) the leak
-  # guard answered from this template, found neither, and refused the six
-  # engine call sites that name them.
   hindsight-sync: "hindsight-sync.py: the per-file ledger of what was retained into the Hindsight memory server (path, content hash, operation id)"
   hindsight-mcp-bridge: "hindsight-mcp-bridge.py: the last known Hindsight MCP tool catalog per endpoint and bank, no credentials"
   hindsight-snapshot: "hindsight-snapshot.py: the daily copy of what lives only in the Hindsight bank (observations, mental models, directives, knowledge-base export, documents with no file behind them)"
@@ -65,41 +36,19 @@ services:
   compact-watch: "checkpoint-state poll logs of scripts/dev/compact-watch.py, which is removed; kept because the runtime mover still names it"
   yard-watch: "the yard-watch Stop hook: when each yard's verdict was first seen and whether it has been notified"
   release: "the release gate in .claude/hooks/_dispatch.py: the journal of every authorised commit and push"
-  # Added 2026-09-22 beside the live registry's own row, closing HOS-74's last
-  # item. The value is a deduplication key rebuilt from the findings every run;
-  # what earned it a row is its ADDRESS, because until now it was the last writer
-  # recreating a directory the migration had emptied, once a day.
   council-models-notify: "the council-models freshness nudge: the deduplication key for which finding has already been notified"
-  # Added 2026-09-25 (HOS-60), when the guard stopped launching the inference
-  # server and started reporting its outage instead: the failure streak and
-  # whether the operator has been told, so one outage sends one line.
   inference-guard: "inference-guard.py: the outage streak and whether the operator was told"
-  # Added 2026-09-25 (HOS-5 § 7, defect 5), when temp files stopped going to the
-  # system /tmp: where an engine script's short-lived temp file or directory
-  # goes, removed by the script that made it, and the log of a supervised run
-  # whose caller named no directory.
   scratch: "engine scripts' short-lived temp files and directories, each removed by the script that made it (tmp/), and the log of a supervised child run whose caller named no directory (logs/)"
   # The one service in this store whose writer is NOT engine code: the Lific
-  # binary writes its own SQLite database here, pinned by ~/.config/lific/lific.toml
-  # on the operator's decision of 2026-09-18. Nothing in the engine called
-  # `get_runtime_dir("lific", ...)` then, so `UnknownService` could never fire and
-  # the gap was invisible until the registry was read against the tree on 2026-09-19.
-  # A folder with no row is a folder with no owner, and this one has an owner.
-  #
-  # Its files sit directly under the service folder rather than under a kind
-  # (`<runtime_store>/lific/lific.db`, not under a `state/` kind folder),
-  # because the path is configured in the external binary and not built by the
-  # front door. OPERATOR DECISION 2026-09-19, asked directly and answered "нет, базу
-  # Lific не переносить": the database STAYS there. So this row is the one
-  # registered service whose files are not under one of the four kinds, and that
-  # is settled rather than pending. Any future check of the <service>/<kind>
-  # shape treats this path as an explicit exception and says so; do not "fix" it.
+  # binary writes its own SQLite database here when its lific.toml points at
+  # this folder. Its files sit directly under the service folder rather than
+  # under a kind (`<runtime_store>/lific/lific.db`), because the path is
+  # configured in the external binary and not built by the front door. Any
+  # check of the <service>/<kind> shape treats this path as an explicit
+  # exception.
   lific: "the Lific issue tracker (external binary): its SQLite database, the -wal and -shm sidecars, and its backups"
-  # Added 2026-09-25 (HOS-5 section 7): every artifact the engine used to write
-  # INSIDE its own checkout, in gitignored `.logs/`, `.tmp/`, `.claude/state/`,
-  # `.cache/`, `.sync/`, `.daemon-state/`, `.sync-exchange/` and `.push-state/`,
-  # moved here. Operator decision that day, verbatim: "old way should go out and
-  # do not stay in the workspace." The engine is public and holds code only.
+  # What an engine checkout writes about itself lives here, never inside the
+  # checkout: the engine holds code only.
   checkout-scratch: "one directory per engine checkout: a prepared commit message, a registry stanza for HELM, raw measurements (formerly <checkout>/.tmp/)"
   hook-state: "one directory per engine checkout: the PreToolUse guards' rate, graph-first and fan-out stamps and the checkpoint hooks' state (formerly <checkout>/.claude/state/)"
   overlay-guard: "scripts/utils/overlay_write_guard.py: the record of every write into the overlay, rotated at 32 MiB, never pruned"
@@ -117,4 +66,4 @@ services:
   daemon-heartbeat: "every daemon's heartbeat file, one per daemon, read by the watchdog and the fleet health view"
   daemon-watchdog: "daemon-watchdog.py: the watchdog's restart counters"
   daemon-config: "the per-user daemon config layer and its history, read by alert.py and the watchdog"
-  data-path: "scripts/utils/data_path.py: the parsed registry, one JSON entry per registry text and parser build, rebuildable (HOS-173)"
+  data-path: "scripts/utils/data_path.py: the parsed registry, one JSON entry per registry text and parser build, rebuildable"
