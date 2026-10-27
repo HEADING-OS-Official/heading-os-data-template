@@ -57,7 +57,6 @@ cookies.json
 # basis: content.
 /runtime-junk/sync-exchange/logs/
 /runtime-junk/overlay-guard/logs/
-/runtime-junk/fireside/logs/
 /runtime-junk/sentinel/logs/
 
 # Quarantined wrecks at every depth. A reader that finds a state file unreadable

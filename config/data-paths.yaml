@@ -56,7 +56,6 @@ services:
   denials: "the gates' denial log: every refusal by a hook, a pre-commit gate or the push wall"
   crm-health: "crm-health.py: the daily list of pipeline companies with no CRM contact"
   sentinel: "sentinel.py: its state, log and pid, and the stdout and stderr systemd appends for its timer units"
-  fireside: "the fireside-bot daemon: its pid, start time, stop file, registered jobs and log"
   setup: "setup.py: which onboarding steps are done"
   claude-models: "scripts/utils/claude_models.py: the Models API answer, cached for a day"
   nightly-refresh: "nightly-refresh.py: the record of its last run"
